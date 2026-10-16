@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تحليل نتائج التموضع TaRL</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --ink: #1f1f1e; --ink2: #52514e; --muted: #7a7975;
+    --line: #e2e0da; --accent: #1c5cab; --accent-ink: #ffffff; --ok: #0f7a55; --err: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 Arial, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #104281; }
+  .lead { color: var(--ink2); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 18px; margin: 0 0 10px; }
+  .step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 14px; margin-left: 8px; }
+  #drop { display: block; border: 2px dashed #b9c9e3; border-radius: 12px; padding: 26px 16px; text-align: center; cursor: pointer; transition: background .15s; }
+  #drop.over { background: #eef4fc; }
+  #drop strong { color: var(--accent); }
+  #file { display: none; }
+  #classes { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 6px 0 14px; }
+  #classes label { cursor: pointer; }
+  .muted { color: var(--muted); font-size: 14px; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+  button.secondary { background: #0f7a55; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { margin: 12px 0 0; min-height: 1.6em; }
+  .status.ok { color: var(--ok); } .status.error { color: var(--err); }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: center; }
+  thead th { background: var(--accent); color: #fff; font-weight: normal; }
+  tbody th { background: #f6f5f2; }
+  #charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
+  figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fff; }
+  figcaption { font-weight: bold; margin-bottom: 4px; }
+  canvas { width: 100%; height: auto; display: block; }
+  #warnbox { background: #fff4db; border: 1px solid #f1d38a; border-radius: 10px; padding: 8px 14px; margin-top: 12px; }
+  #warnbox ul { margin: 4px 0; padding-right: 18px; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>تحليل نتائج التموضع TaRL</h1>
+  <p class="lead">ارفع ملف نتائج روائز التموضع (Excel) فتحصل على صفحة Word واحدة: مبيانات وجداول لكل مادة، ونسبة التلاميذ الذين انتقلوا إلى مستوى أعلى، مع أسطر فارغة للتعليق.</p>
+
+  <section class="card">
+    <h2><span class="step">1</span>اختر ملف النتائج</h2>
+    <label id="drop" for="file">
+      <strong>اضغط هنا لاختيار الملف</strong> أو اسحبه وأفلته هنا<br>
+      <span class="muted">ملف Excel بصيغة xlsx، بنفس شكل ملف نتائج TaRL (ورقة لكل قسم)</span>
+    </label>
+    <input type="file" id="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <p id="status" class="status"></p>
+  </section>
+
+  <section class="card" id="step2" hidden>
+    <h2><span class="step">2</span>اختر الأقسام ثم أنشئ التقرير</h2>
+    <div id="classes"></div>
+    <div class="actions">
+      <button id="generate" type="button">إنشاء التقرير</button>
+      <button id="download" type="button" class="secondary" disabled>تحميل ملف Word</button>
+    </div>
+  </section>
+
+  <section class="card" id="results" hidden>
+    <h2>معاينة النتائج</h2>
+    <div class="table-wrap">
+      <table id="summary">
+        <thead><tr>
+          <th>المادة</th><th>المستوى المتوقع</th>
+          <th>في المستوى المتوقع (التموضع القبلي)</th><th>في المستوى المتوقع (التموضع البعدي)</th>
+          <th>نسبة الانتقال لدى من كانوا دون المستوى المتوقع</th><th>انتقلوا بمستويين فأكثر</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="warnbox" hidden><strong>ملاحظات على الملف:</strong><ul id="warnings"></ul></div>
+    <div id="charts"></div>
+  </section>
+
+  <footer>تتم المعالجة كلها داخل متصفحك، ولا يُرسَل الملف إلى أي خادم.</footer>
+</main>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/docx.iife.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
