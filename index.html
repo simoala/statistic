@@ -28,6 +28,10 @@
   #classes { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
   #classes label { cursor: pointer; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; background: #f8fafd; }
   .muted { color: var(--muted); font-size: 14px; }
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 4px 0 8px; padding: 12px; background: #f8fafd; border: 1px solid var(--line); border-radius: 12px; }
+  .set-row label { display: block; font-size: 14px; color: var(--ink2); margin-bottom: 4px; }
+  .set-row input, .set-row select { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #c9d3e3; border-radius: 8px; background: #fff; color: var(--ink); }
+  .set-row select.missing { border-color: var(--err); background: #fff4f2; }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; }
   button { font: inherit; border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer; background: var(--navy); color: #fff; }
   button.word { background: #1f5fbf; } button.pdf { background: #c2541f; }
@@ -55,16 +59,19 @@
   .r-tile .m { font-size: 8pt; font-weight: bold; }
   .r-table { width: 100%; border-collapse: collapse; font-size: 8.3pt; }
   .r-table th { color: #fff; font-weight: bold; padding: 1.4mm 1.2mm; border: .2mm solid #d9d6cf; }
-  .r-table td { border: .2mm solid #d9d6cf; padding: 1mm 1.4mm; text-align: center; }
+  .r-table td { border: .2mm solid #d9d6cf; padding: .75mm 1.4mm; text-align: center; }
   .r-table tbody tr:nth-child(even) td { background-color: #f7f6f3; }
   .r-table td.b { font-weight: bold; }
-  .r-sec h2 { font-size: 14pt; margin: 3.5mm 0 2mm; padding-bottom: .8mm; border-bottom: .7mm solid; }
+  .r-sec h2 { font-size: 14pt; margin: 3mm 0 1.8mm; padding-bottom: .8mm; border-bottom: .7mm solid; }
   .r-sec h2 small { font-size: 8.3pt; color: #55534e; font-weight: normal; margin-right: 4mm; }
   .r-chart { width: 100%; display: block; margin: 1.5mm 0 .5mm; }
-  .r-lines div { height: 4.6mm; border-bottom: .3mm dotted #a9a7a0; }
+  .r-lines div { height: 4.3mm; border-bottom: .3mm dotted #a9a7a0; }
   .r-box { background: #f4f6fa; border-top: .5mm solid #14325c; border-bottom: .5mm solid #14325c; }
-  .r-box div { height: 5.2mm; border-bottom: .3mm dotted #a9a7a0; }
+  .r-box div { height: 4.8mm; border-bottom: .3mm dotted #a9a7a0; }
   .r-box div:last-child { border-bottom: 0; }
+  .r-sign { display: flex; justify-content: space-between; gap: 8mm; margin-top: 3.5mm; font-size: 9.5pt; color: #1f1f1e; }
+  .r-sign b { color: #14325c; }
+  .r-sign .dots { display: inline-block; width: 55mm; border-bottom: .3mm dotted #a9a7a0; vertical-align: bottom; }
   .r-foot { position: absolute; bottom: 5mm; left: 0; right: 0; text-align: center; font-size: 7.5pt; color: #8a8882; }
 
   @page { size: A4; margin: 0; }
@@ -101,6 +108,15 @@
   <section class="card" id="step2" hidden>
     <h2><span class="step">2</span>اختر الأقسام ثم أنشئ التقرير</h2>
     <div id="classes"></div>
+    <div class="settings">
+      <div class="set-row"><label for="teacher">اسم الأستاذ(ة)</label><input id="teacher" type="text" placeholder="اختياري"></div>
+      <div class="set-row"><label for="grade">المستوى الدراسي</label><input id="grade" type="text" placeholder="مثلاً: السادس ابتدائي"></div>
+      <div class="set-row"><label for="exp-ar">المستوى المتوقع – اللغة العربية</label><select id="exp-ar"></select></div>
+      <div class="set-row"><label for="exp-fr">المستوى المتوقع – اللغة الفرنسية</label><select id="exp-fr"></select></div>
+      <div class="set-row"><label for="exp-ma">المستوى المتوقع – الرياضيات</label><select id="exp-ma"></select></div>
+    </div>
+    <p class="muted" id="settings-note">تُقرأ هذه القيم من الملف تلقائياً حسب المستوى الدراسي، ويمكنك تغييرها. الحساب يتم على أساس المستوى المتوقع المختار هنا.</p>
+    <p id="mixwarn" class="status error" hidden></p>
     <div class="actions">
       <button id="generate" type="button">إنشاء التقرير</button>
       <button id="download" type="button" class="word" disabled>تحميل Word</button>
@@ -115,7 +131,7 @@
     <div id="report-wrap"><div id="report"></div></div>
   </section>
 
-  <footer><b>الإصدار 3</b> · تتم المعالجة كلها داخل متصفحك، ولا يُرسَل الملف إلى أي خادم.</footer>
+  <footer><b>الإصدار 6</b> · تتم المعالجة كلها داخل متصفحك، ولا يُرسَل الملف إلى أي خادم.</footer>
 </main>
 <script>
 /* ---- lib/jszip.min.js ---- */
@@ -22254,7 +22270,7 @@ function analyse(students, key, expectedRaw, warnings) {
   return {
     key, title, list, shown, target,
     nPre, nPost,
-    preAt: pre.filter(v => v === target).length, postAt: post.filter(v => v === target).length,
+    preAt: pre.filter(v => v != null && v >= target).length, postAt: post.filter(v => v != null && v >= target).length,
     distPre: dist(pre, nPre), distPost: dist(post, nPost),
     below: below.length, upBelow, jump2, rows,
   };
@@ -22300,29 +22316,42 @@ function drawSubjectChart(an) {
   const S = SUBJECTS.find(s => s.key === an.key);
   const W = 2200, H = 500;
   const [cv, g] = newCanvas(W, H);
-  const left = 30, right = W - 30, bandTop = 60, top = 140, base = H - (an.key === 'fr' ? 92 : 70);
-  legendRTL(g, right, 40, [['مستوى التموضع القبلي', hex(S.tint)], ['مستوى التموضع البعدي', hex(S.color)]]);
-  const n = an.shown.length, slot = (right - left) / n;
-  const bw = Math.min(slot * 0.3, 130);
-  const maxV = Math.max(1, ...an.distPre.map(d => d.pct), ...an.distPost.map(d => d.pct));
-  const scale = v => (base - top) * v / maxV;
+  // Categories: each level below the expected level, then ONE bar for
+  // "expected level and above" (a pupil at a higher level has mastered the expected one).
   const ti = an.shown.indexOf(an.target);
-  g.fillStyle = hex(S.fill); g.fillRect(left + slot * ti + 6, bandTop, slot - 12, base - bandTop);
-  g.text('المستوى المتوقع', left + slot * (ti + 0.5), bandTop + 34, 27, hex(S.color), 'center', 'bold');
-  // light guide lines
+  const above = an.shown.slice(ti + 1);
+  const cats = an.shown.slice(0, ti).map((lvl, k) => ({ label: an.list[lvl].label, pre: an.distPre[k].pct, post: an.distPost[k].pct }));
+  const sum = arr => arr.slice(ti).reduce((a, d) => a + d.pct, 0);
+  cats.push({ label: an.list[an.target].label, merged: above.length > 0, pre: sum(an.distPre), post: sum(an.distPost), target: true,
+              includes: above.map(l => an.list[l].label) });
+  const n = cats.length;
+  const left = 30, right = W - 30, bandTop = 60, top = 165, base = H - 96;
+  legendRTL(g, right, 40, [['مستوى التموضع القبلي', hex(S.tint)], ['مستوى التموضع البعدي', hex(S.color)]]);
+  const slot = (right - left) / n;
+  const bw = Math.min(slot * 0.3, 130);
+  const maxV = Math.max(1, ...cats.map(c => Math.max(c.pre, c.post)));
+  const scale = v => (base - top) * v / maxV;
+  // shaded column for the expected level (merged with the levels above it)
+  const zx = left + slot * (n - 1) + 6, zw = slot - 12, zc = zx + zw / 2;
+  g.fillStyle = hex(S.fill); g.fillRect(zx, bandTop, zw, base - bandTop);
+  g.text(cats[n - 1].merged ? 'المستوى المتوقع فما فوق' : 'المستوى المتوقع', zc, bandTop + 34, 27, hex(S.color), 'center', 'bold');
   g.strokeStyle = '#ecebe7'; g.lineWidth = 2;
-  [0.5, 1].forEach(f => { const y = base - (base - top) * f; g.beginPath(); g.moveTo(left, y); g.lineTo(right, y); g.stroke(); });
-  an.shown.forEach((lvl, k) => {
+  [0.5, 1].forEach(f => { const y = base - (base - top) * f; g.beginPath(); g.moveTo(left, y); g.lineTo(zx - 6, y); g.stroke(); });
+  cats.forEach((c, k) => {
     const cx = left + slot * (k + 0.5);
-    const pre = an.distPre[k].pct, post = an.distPost[k].pct;
-    g.round(cx - bw - 4, base - scale(pre), bw, scale(pre), 10, hex(S.tint));
-    g.round(cx + 4, base - scale(post), bw, scale(post), 10, hex(S.color));
-    g.text(`${Math.round(pre)}%`, cx - bw / 2 - 4, base - scale(pre) - 12, 29, hex(THEME.ink2));
-    g.text(`${Math.round(post)}%`, cx + bw / 2 + 4, base - scale(post) - 12, 29, hex(S.color), 'center', 'bold');
-    const isT = lvl === an.target, label = an.list[lvl].label;
-    g.font = `${isT ? 'bold' : 'normal'} 31px ${FONT_STACK}`;
-    const parts = g.measureText(label).width > slot - 16 && label.includes(' ') ? [label.slice(0, label.indexOf(' ')), label.slice(label.indexOf(' ') + 1)] : [label];
-    parts.forEach((t, j) => g.text(t, cx, base + 42 + j * 30, parts.length > 1 ? 28 : 31, isT ? hex(S.color) : hex(THEME.ink2), 'center', isT ? 'bold' : 'normal'));
+    g.round(cx - bw - 4, base - scale(c.pre), bw, scale(c.pre), 10, hex(S.tint));
+    g.round(cx + 4, base - scale(c.post), bw, scale(c.post), 10, hex(S.color));
+    g.text(`${c.target ? c.pre.toFixed(1) : Math.round(c.pre)}%`, cx - bw / 2 - 4, base - scale(c.pre) - 12, c.target ? 31 : 29, hex(THEME.ink2), 'center', c.target ? 'bold' : 'normal');
+    g.text(`${c.target ? c.post.toFixed(1) : Math.round(c.post)}%`, cx + bw / 2 + 4, base - scale(c.post) - 12, c.target ? 33 : 29, hex(S.color), 'center', 'bold');
+    const color = c.target ? hex(S.color) : hex(THEME.ink2), weight = c.target ? 'bold' : 'normal';
+    if (c.merged) {
+      g.text(c.label + ' فما فوق', cx, base + 40, 30, color, 'center', 'bold');
+      g.text('(' + [c.label, ...c.includes].join(' + ') + ')', cx, base + 74, 22, hex(THEME.ink2));
+    } else {
+      g.font = `${weight} 31px ${FONT_STACK}`;
+      const parts = g.measureText(c.label).width > slot - 16 && c.label.includes(' ') ? [c.label.slice(0, c.label.indexOf(' ')), c.label.slice(c.label.indexOf(' ') + 1)] : [c.label];
+      parts.forEach((t, j) => g.text(t, cx, base + 40 + j * 30, parts.length > 1 ? 28 : 31, color, 'center', weight));
+    }
   });
   g.strokeStyle = '#c9c6bf'; g.lineWidth = 3; g.beginPath(); g.moveTo(left, base + 1.5); g.lineTo(right, base + 1.5); g.stroke();
   return cv;
@@ -22362,14 +22391,15 @@ function mixHex(a, b, t) {
 const rateFill = (S, rate) => mixHex(S.fill, S.tint, rate >= 75 ? 1 : rate >= 60 ? 0.66 : rate >= 45 ? 0.33 : 0);
 
 // Shared text for both outputs (Word and PDF).
-function reportModel(meta, analyses, nPre, nPost, classesNote) {
+function reportModel(meta, analyses, nPre, nPost, classesNote, teacher = '') {
   const city = (meta.direction.split(/[:：]/)[1] || '').trim();
   return {
     title: 'تقرير نتائج التموضع TaRL',
     line1: [meta.level ? 'المستوى ' + meta.level : '', [meta.school, city].filter(Boolean).join(' – '), meta.year ? 'السنة الدراسية ' + meta.year : ''].filter(Boolean).join('   ·   '),
-    line2: `التموضع القبلي: ${nPre} تلميذاً   ·   التموضع البعدي: ${nPost} تلميذاً` + (classesNote ? '   ·   ' + classesNote : ''),
+    line2: (teacher ? `الأستاذ(ة): ${teacher}   ·   ` : '') + `التموضع القبلي: ${nPre} تلميذاً   ·   التموضع البعدي: ${nPost} تلميذاً` + (classesNote ? '   ·   ' + classesNote : ''),
+    teacher,
     footer: ['تقرير نتائج التموضع TaRL', meta.school, meta.year].filter(Boolean).join(' · '),
-    summaryHead: ['المادة', 'المستوى المتوقع', 'عدد ونسبة التلاميذ في المستوى المتوقع (التموضع القبلي)', 'عدد ونسبة التلاميذ في المستوى المتوقع (التموضع البعدي)'],
+    summaryHead: ['المادة', 'المستوى المتوقع', 'عدد ونسبة التلاميذ في المستوى المتوقع أو أعلى (التموضع القبلي)', 'عدد ونسبة التلاميذ في المستوى المتوقع أو أعلى (التموضع البعدي)'],
     subjectHead: ['مستوى التموضع القبلي', 'العدد', 'انتقلوا إلى مستوى أعلى', 'النسبة', 'مستوى التموضع البعدي لمن انتقلوا'],
     analyses: analyses.map(an => {
       const S = SUBJECTS.find(s => s.key === an.key);
@@ -22490,7 +22520,7 @@ async function buildDocx(M) {
       children: [
         para(a.an.title, { size: 21, bold: true, color: a.S.color, align: AlignmentType.START, after: 20 }),
         para(a.postPct, { size: 46, bold: true, color: a.S.color, align: AlignmentType.START, after: 0 }),
-        para(`في المستوى المتوقع «${a.target}» – التموضع البعدي`, { size: 15, color: THEME.ink2, align: AlignmentType.START, after: 60 }),
+        para(`في المستوى المتوقع «${a.target}» أو أعلى – التموضع البعدي`, { size: 15, color: THEME.ink2, align: AlignmentType.START, after: 60 }),
         para(`في التموضع القبلي: ${a.prePct}`, { size: 16, bold: true, color: THEME.ink, align: AlignmentType.START }),
       ],
     }));
@@ -22505,11 +22535,11 @@ async function buildDocx(M) {
     { text: a.post, ltr: true, bold: true },
   ]), [2200, 1900, 3223, 3223], THEME.navy));
   // overview chart
-  body.push(sectionTitle('نسبة التلاميذ في المستوى المتوقع', THEME.navy, 'مقارنة بين التموضع القبلي والتموضع البعدي'));
+  body.push(sectionTitle('نسبة التلاميذ في المستوى المتوقع أو أعلى', THEME.navy, 'مقارنة بين التموضع القبلي والتموضع البعدي'));
   body.push(image(M.overviewPng, 703, 192));
   // one section per subject; French starts page 2
   M.analyses.forEach((a, i) => {
-    body.push(sectionTitle(a.an.title, a.S.color, `المستوى المتوقع: ${a.target}`, i === 1));
+    body.push(sectionTitle(a.an.title, a.S.color, `المستوى المتوقع: ${a.target}   ·   بلغوه أو تجاوزوه: ${a.prePct} في التموضع القبلي و${a.postPct} في التموضع البعدي`, i === 1));
     const rows = a.rows.map(r => [
       { text: r.level, ltr: a.fr, bold: true },
       { text: String(r.n), ltr: true }, { text: String(r.up), ltr: true },
@@ -22533,6 +22563,19 @@ async function buildDocx(M) {
       children: [new Paragraph({ children: [] })],
     })] })),
   }));
+  // teacher name and signature
+  const half = CW / 2;
+  const sigCell = (label, value) => new TableCell({
+    width: { size: half, type: WidthType.DXA }, borders: { top: none, left: none, right: none, bottom: none },
+    margins: { top: 0, bottom: 0, left: 80, right: 80 },
+    children: [new Paragraph({ bidirectional: true, spacing: { before: 0, after: 0, line: 240, lineRule: 'auto' }, children: [
+      ...segRuns(label + ' ', { size: 18, bold: true, color: THEME.navy }),
+      ...(value ? segRuns(value, { size: 18, color: THEME.ink }) : segRuns('………………………………………', { size: 18, color: 'A9A7A0' })),
+    ] })],
+  });
+  body.push(spacer(160));
+  body.push(new Table({ visuallyRightToLeft: true, width: { size: CW, type: WidthType.DXA }, columnWidths: [half, half], borders: noB,
+    rows: [new TableRow({ children: [sigCell('اسم الأستاذ(ة):', M.teacher), sigCell('التوقيع:', '')] })] }));
   body.push(spacer(0));
 
   const footer = new Footer({ children: [new Paragraph({
@@ -22568,7 +22611,7 @@ function buildHtmlReport(M) {
     const rows = a.rows.map(r => [{ text: r.level, ltr: a.fr, bold: true }, { text: r.n }, { text: r.up }, { text: r.rate, bold: true, fill: rateFill(a.S, r.rateNum) }, { text: r.dest, ltr: a.fr }]);
     rows.push([{ text: 'المجموع', bold: true }, { text: a.an.below, bold: true }, { text: a.an.upBelow, bold: true }, { text: a.rate, bold: true, fill: rateFill(a.S, a.rateNum) }, { text: '' }]);
     return `<section class="r-sec">
-      <h2 style="color:#${a.S.color};border-color:#${a.S.color}">${escapeHtml(a.an.title)}<small>المستوى المتوقع: ${bidiSpan(a.target, a.fr)}</small></h2>
+      <h2 style="color:#${a.S.color};border-color:#${a.S.color}">${escapeHtml(a.an.title)}<small>المستوى المتوقع: ${bidiSpan(a.target, a.fr)} · بلغوه أو تجاوزوه: <span dir="ltr">${a.prePct}</span> في التموضع القبلي و<span dir="ltr">${a.postPct}</span> في التموضع البعدي</small></h2>
       ${tbl(M.subjectHead, rows, a.S.color, 'r-subj')}
       <img class="r-chart" src="${a.pngUrl}" alt="">
       ${lines(4)}
@@ -22582,11 +22625,11 @@ function buildHtmlReport(M) {
     <div class="r-tiles">${M.analyses.map(a => `<div class="r-tile" style="background:#${a.S.fill};border-color:#${a.S.color}">
       <div class="t" style="color:#${a.S.color}">${escapeHtml(a.an.title)}</div>
       <div class="n" style="color:#${a.S.color}" dir="ltr">${a.postPct}</div>
-      <div class="d">في المستوى المتوقع «${bidiSpan(a.target, a.fr)}» – التموضع البعدي</div>
+      <div class="d">في المستوى المتوقع «${bidiSpan(a.target, a.fr)}» أو أعلى – التموضع البعدي</div>
       <div class="m">في التموضع القبلي: <span dir="ltr">${a.prePct}</span></div></div>`).join('')}</div>
     ${tbl(M.summaryHead, M.analyses.map(a => [
       { text: a.an.title, bold: true, color: a.S.color, fill: a.S.fill }, { text: a.target, ltr: a.fr }, { text: a.pre, ltr: true }, { text: a.post, ltr: true, bold: true }]), THEME.navy, 'r-sum')}
-    <section class="r-sec"><h2 style="color:#${THEME.navy};border-color:#${THEME.navy}">نسبة التلاميذ في المستوى المتوقع<small>مقارنة بين التموضع القبلي والتموضع البعدي</small></h2>
+    <section class="r-sec"><h2 style="color:#${THEME.navy};border-color:#${THEME.navy}">نسبة التلاميذ في المستوى المتوقع أو أعلى<small>مقارنة بين التموضع القبلي والتموضع البعدي</small></h2>
       <img class="r-chart r-over" src="${M.overviewUrl}" alt=""></section>
     ${section(ar)}
     ${footer(1)}
@@ -22595,6 +22638,7 @@ function buildHtmlReport(M) {
     ${section(fr)}
     ${section(ma)}
     <section class="r-sec"><h2 style="color:#${THEME.navy};border-color:#${THEME.navy}">خلاصة عامة</h2><div class="r-box">${'<div></div>'.repeat(3)}</div></section>
+    <div class="r-sign"><div><b>اسم الأستاذ(ة):</b> ${M.teacher ? escapeHtml(M.teacher) : '<span class="dots"></span>'}</div><div><b>التوقيع:</b> <span class="dots"></span></div></div>
     ${footer(2)}
   </div>`;
 }
@@ -22620,8 +22664,13 @@ async function onFile(file) {
     const box = $('#classes'); box.innerHTML = '';
     parsed.forEach((p, i) => {
       const id = 'cls' + i;
-      box.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="checkbox" id="${id}" data-i="${i}" checked> ${escapeHtml(p.name)} <span class="muted">(${p.students.length})</span></label>`);
+      box.insertAdjacentHTML('beforeend', `<label for="${id}"><input type="checkbox" id="${id}" data-i="${i}" checked> ${escapeHtml(p.name)} <span class="muted">(${p.students.length}${p.meta.level ? ' · ' + escapeHtml(p.meta.level) : ''})</span></label>`);
     });
+    box.querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => { syncSettings(); invalidate(); }));
+    // if the file mixes grades, start with the classes of the first grade only
+    const firstGrade = parsed[0].meta.level;
+    box.querySelectorAll('input').forEach(cb => { cb.checked = parsed[+cb.dataset.i].meta.level === firstGrade; });
+    syncSettings();
     $('#step2').hidden = false;
     setStatus(`تمت قراءة ${parsed.length} قسم/أقسام. اختر الأقسام ثم اضغط «إنشاء التقرير».`, 'ok');
   } catch (e) {
@@ -22629,21 +22678,69 @@ async function onFile(file) {
   }
 }
 
+// Grade and expected levels: read from the selected classes, editable by the user.
+const chosenClasses = () => [...document.querySelectorAll('#classes input:checked')].map(i => parsed[+i.dataset.i]);
+function fillLevelSelects() {
+  for (const s of SUBJECTS) {
+    const sel = $('#exp-' + s.key);
+    sel.innerHTML = LEVELS[s.key].map(l => `<option value="${escapeHtml(l.label)}">${escapeHtml(l.label)}</option>`).join('');
+    sel.addEventListener('change', () => { sel.classList.remove('missing'); invalidate(); });
+  }
+  $('#grade').addEventListener('input', invalidate);
+  // remember the teacher's name on this computer (convenience only)
+  try { $('#teacher').value = localStorage.getItem('tarl-teacher') || ''; } catch (e) { /* storage unavailable */ }
+  $('#teacher').addEventListener('input', () => { invalidate(); try { localStorage.setItem('tarl-teacher', $('#teacher').value); } catch (e) { /* ignore */ } });
+}
+function syncSettings() {
+  const chosen = chosenClasses();
+  const grades = [...new Set(chosen.map(p => p.meta.level).filter(Boolean))];
+  const mixed = grades.length > 1;
+  $('#mixwarn').hidden = !mixed;
+  $('#mixwarn').textContent = mixed ? `الأقسام المختارة من مستويات دراسية مختلفة (${grades.join('، ')}). اختر أقسام مستوى دراسي واحد، لأن لكل مستوى مستواه المتوقع.` : '';
+  $('#generate').disabled = mixed || !chosen.length;
+  $('#grade').value = grades[0] || '';
+  const missing = [];
+  for (const s of SUBJECTS) {
+    const sel = $('#exp-' + s.key), idx = LEVEL_INDEX[s.key];
+    const raw = chosen.map(p => p.expected[s.key]).find(v => v != null && idx.has(norm(v)));
+    let i = raw != null ? idx.get(norm(raw)) : undefined;
+    if (i === undefined) {
+      // not in the file: propose the highest level present in the data
+      const present = chosen.flatMap(p => p.students.flatMap(st => [st[s.key + '_pre'], st[s.key + '_post']]))
+        .map(v => (v == null ? undefined : idx.get(norm(v)))).filter(v => v !== undefined);
+      i = present.length ? Math.max(...present) : LEVELS[s.key].length - 1;
+      missing.push(s.title);
+    }
+    sel.value = LEVELS[s.key][i].label;
+    sel.classList.toggle('missing', raw == null);
+  }
+  $('#settings-note').textContent = missing.length
+    ? `لم يُعثر في الملف على المستوى المتوقع لـ: ${missing.join('، ')}. اختره من القائمة (الخانة المحددة بالأحمر) قبل إنشاء التقرير.`
+    : 'تُقرأ هذه القيم من الملف تلقائياً حسب المستوى الدراسي، ويمكنك تغييرها. الحساب يتم على أساس المستوى المتوقع المختار هنا.';
+}
+// any change after a report was produced: ask to regenerate
+function invalidate() {
+  if (!lastBlob) return;
+  lastBlob = null; $('#download').disabled = true; $('#pdf').disabled = true;
+  setStatus('تغيّرت الإعدادات: اضغط «إنشاء التقرير» من جديد.', '');
+}
+
 async function generate() {
-  const chosen = [...document.querySelectorAll('#classes input:checked')].map(i => parsed[+i.dataset.i]);
+  const chosen = chosenClasses();
   if (!chosen.length) { setStatus('اختر قسماً واحداً على الأقل.', 'error'); return; }
+  if (new Set(chosen.map(p => p.meta.level).filter(Boolean)).size > 1) { setStatus('اختر أقسام مستوى دراسي واحد.', 'error'); return; }
   if (typeof docx === 'undefined') { setStatus('لم تُحمَّل مكتبة إنشاء ملف Word. تأكد أن ملف index.html المرفوع هو آخر إصدار.', 'error'); return; }
   setStatus('جاري التحليل وإنشاء التقرير…');
   try {
     const students = chosen.flatMap(p => p.students);
-    const meta = chosen[0].meta;
-    const expected = chosen.find(p => Object.keys(p.expected).length)?.expected || {};
+    const meta = { ...chosen[0].meta, level: $('#grade').value.trim() };
+    const expected = Object.fromEntries(SUBJECTS.map(s => [s.key, $('#exp-' + s.key).value]));
     const warnings = [];
     const analyses = SUBJECTS.map(s => analyse(students, s.key, expected[s.key], warnings));
     const nPre = students.filter(s => SUBJECTS.some(x => s[x.key + '_pre'] != null)).length;
     const nPost = students.filter(s => SUBJECTS.some(x => s[x.key + '_post'] != null)).length;
     const classesNote = chosen.length < parsed.length ? 'الأقسام: ' + chosen.map(p => p.name).join('، ') : '';
-    const M = reportModel(meta, analyses, nPre, nPost, classesNote);
+    const M = reportModel(meta, analyses, nPre, nPost, classesNote, $('#teacher').value.trim());
     for (const a of M.analyses) {
       const cv = drawSubjectChart(a.an);
       a.png = await canvasPng(cv); a.pngUrl = cv.toDataURL('image/png');
@@ -22696,6 +22793,7 @@ window.addEventListener('DOMContentLoaded', () => {
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', e => onFile(e.dataTransfer.files[0]));
+  fillLevelSelects();
   $('#generate').addEventListener('click', generate);
   $('#download').addEventListener('click', download);
   $('#pdf').addEventListener('click', savePdf);
